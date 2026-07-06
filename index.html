@@ -1,0 +1,841 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#FF7A00">
+    <meta name="description" content="স্মার্ট বাংলা ক্যালেন্ডার প্রো (ইন্ডিয়া) - ভারতীয় ক্যালেন্ডার, ছুটির তালিকা ও পঞ্চাঙ্গ">
+    <title> Calander</title>
+    
+    <!-- ফন্ট ও আইকন -->
+    <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@300;400;500;600;700&family=Poppins:wght@400;600;700&family=Tiro+Bangla&family=Galada&display=swap" rel="stylesheet">
+    
+    <style>
+        /* --- থিম ভেরিয়েবল ও কালার গ্রেডিং --- */
+        :root {
+            --primary: #FF7A00; 
+            --primary-dark: #E65100;
+            --primary-light: #FFF3E0;
+            --bg-body: #F8F9FE;
+            --surface: #FFFFFF;
+            --text-main: #1F2937;
+            --text-mute: #6B7280;
+            
+            --col-eng: #111827;
+            --col-bn: #E11D48;   
+            --col-saka: #D97706; 
+            --bg-bn: #FFF1F2;
+            --bg-saka: #FFFBEB;
+            
+            --holiday: #EF4444;
+            --nav-height: 75px;
+            
+            --font-bn-num: 'Tiro Bangla', serif;
+            --font-bn-fancy: 'Galada', cursive;
+            --shadow-soft: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; outline: none; -webkit-tap-highlight-color: transparent; user-select: none; }
+        
+        body {
+            font-family: 'Hind Siliguri', sans-serif;
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            height: 100vh;
+            height: 100dvh;
+            display: flex; flex-direction: column; overflow: hidden;
+        }
+
+        ::-webkit-scrollbar { width: 0px; background: transparent; }
+
+        /* --- হেডার --- */
+        header {
+            padding: 15px 20px; 
+            display: flex; justify-content: space-between; align-items: center;
+            background: var(--surface);
+            border-bottom-left-radius: 25px;
+            border-bottom-right-radius: 25px;
+            box-shadow: var(--shadow-soft);
+            z-index: 50; flex-shrink: 0;
+        }
+        
+        .month-selector { flex: 1; text-align: center; }
+        .main-month { font-size: 22px; font-weight: 700; color: var(--primary); line-height: 1.2; font-family: var(--font-bn-num); }
+        .sub-month { font-size: 13px; font-weight: 600; margin-top: 2px; display: flex; justify-content: center; gap: 8px; opacity: 0.8; }
+        
+        .header-bn { color: var(--col-bn); font-family: var(--font-bn-num); }
+        .header-saka { color: var(--col-saka); font-family: var(--font-bn-num); }
+        .divider { color: #D1D5DB; }
+
+        .nav-btn { width: 36px; height: 36px; border-radius: 12px; background: var(--primary-light); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.2s; font-size: 20px; color: var(--primary); border: 1px solid transparent; }
+        .nav-btn:active { background: var(--primary); color: white; transform: scale(0.90); }
+
+        .header-loc {
+            display: flex; align-items: center; gap: 6px;
+            background: var(--bg-body); padding: 6px 12px; border-radius: 20px;
+            cursor: pointer; transition: all 0.2s; border: 1px solid #E5E7EB;
+        }
+        .header-loc:active { transform: scale(0.95); background: #E5E7EB; }
+        .loc-icon-main { width: 16px; height: 16px; color: var(--text-mute); }
+        .loc-text-span { font-size: 13px; font-weight: 600; color: var(--text-main); max-width: 80px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+        /* --- মেইন কন্টেন্ট এরিয়া --- */
+        .main-content { flex: 1; overflow-y: auto; position: relative; padding-bottom: 100px; scroll-behavior: smooth; }
+        .tab-section { display: none; animation: fadeIn 0.3s ease-out; }
+        .tab-section.active { display: block; }
+        @keyframes fadeIn { from{opacity:0; transform:translateY(10px);} to{opacity:1; transform:translateY(0);} }
+
+        /* --- ১. ক্যালেন্ডার গ্রিড --- */
+        .calendar-container { padding: 15px; }
+        .weekdays { display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; color: var(--text-mute); font-size: 13px; font-weight: 600; margin-bottom: 10px; }
+        .days-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; text-align: center; }
+        
+        .day { 
+            aspect-ratio: 1/1.1;
+            display: flex; flex-direction: column; align-items: center; justify-content: center; 
+            border-radius: 16px; background: white; 
+            border: 1px solid transparent; 
+            box-shadow: 0 2px 5px rgba(0,0,0,0.02);
+            position: relative; transition: 0.2s; cursor: pointer;
+        }
+        .day:active { transform: scale(0.92); }
+        
+        .day.active { 
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark)); 
+            box-shadow: 0 8px 16px rgba(255, 122, 0, 0.3);
+            border: none;
+        }
+        
+        .date-main { font-family: 'Poppins', sans-serif; font-size: 18px; font-weight: 700; color: var(--col-eng); margin-top: 2px; }
+        .sub-dates { display: flex; width: 100%; justify-content: space-between; padding: 0 6px; position: absolute; top: 4px; }
+        
+        .date-saka { font-family: var(--font-bn-num); color: var(--col-saka); font-size: 11px; font-weight: bold; }
+        .date-bn { color: var(--col-bn); font-family: var(--font-bn-num); font-size: 11px; font-weight: bold; }
+        
+        .day.active .date-main, .day.active .date-saka, .day.active .date-bn { color: white !important; text-shadow: 0 1px 2px rgba(0,0,0,0.2); }
+        
+        .day.has-event::after { content: ''; position: absolute; bottom: 6px; width: 5px; height: 5px; background: var(--primary); border-radius: 50%; }
+        .day.active.has-event::after { background: #FFD700; }
+        
+        .day.is-holiday { background: #FEF2F2; border: 1px solid #FECACA; }
+        .day.is-holiday .date-main { color: var(--holiday); }
+        .day.active.is-holiday { background: linear-gradient(135deg, #EF4444, #B91C1C); border: none; }
+        .day.active.is-holiday .date-main { color: white; }
+
+        /* --- ইভেন্ট কার্ড / ড্যাশবোর্ড --- */
+        .timeline-wrapper { 
+            background: var(--surface); border-radius: 24px; padding: 20px; margin: 0 15px 20px 15px; 
+            box-shadow: var(--shadow-soft); 
+        }
+        .date-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px solid #F3F4F6; }
+        
+        .date-big-wrapper { display: flex; flex-direction: column; }
+        .date-big { font-size: 26px; font-weight: 700; color: var(--text-main); line-height: 1; font-family: var(--font-bn-fancy); }
+        .day-name-big { font-size: 14px; color: var(--text-mute); margin-top: 4px; }
+
+        .date-chips { display: flex; flex-direction: column; gap: 6px; align-items: flex-end; }
+        .chip { padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; display: flex; align-items: center; gap: 6px; font-family: var(--font-bn-num); }
+        .chip.saka { background: var(--bg-saka); color: var(--col-saka); }
+        .chip.bn { background: var(--bg-bn); color: var(--col-bn); }
+        
+        .mini-panjika-card {
+            background: linear-gradient(to right, #FFF3E0, #FFECB3); 
+            padding: 12px 15px; border-radius: 16px; 
+            display: flex; justify-content: space-between; align-items: center; 
+            border: 1px solid #FFE082; cursor: pointer;
+        }
+        
+        .event-card { 
+            padding: 15px; border-radius: 16px; margin-bottom: 12px; display: flex; align-items: center; gap: 15px; 
+            background: white; border: 1px solid #F3F4F6; box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+            border-left: 4px solid var(--primary);
+        }
+        .time-txt { 
+            font-size: 13px; font-weight: 700; font-family: var(--font-bn-num); 
+            color: var(--primary); background: var(--primary-light); 
+            padding: 5px 10px; border-radius: 8px; 
+        }
+        .btn-delete-event {
+            width: 32px; height: 32px; border-radius: 50%; background: #FEF2F2; color: #EF4444; border: none; 
+            display: flex; align-items: center; justify-content: center; cursor: pointer; margin-left: auto;
+        }
+
+        /* --- ট্যাব: পঞ্চাঙ্গ --- */
+        .panjika-hero {
+            background: linear-gradient(135deg, #1E3A8A, #312E81);
+            color: white; padding: 20px; border-radius: 24px; margin-bottom: 20px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.15); position: relative; overflow: hidden;
+        }
+        .panjika-hero::before {
+            content: ''; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%;
+            background: radial-gradient(circle, rgba(255,165,0,0.15), transparent 60%);
+            animation: rotate 60s linear infinite;
+        }
+        @keyframes rotate { from{transform:rotate(0deg);} to{transform:rotate(360deg);} }
+        
+        .sunrise-sunset-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 10px; }
+        .si-card { padding: 15px; border-radius: 18px; text-align: center; color: white; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+        .si-sunrise { background: linear-gradient(135deg, #F59E0B, #EA580C); }
+        .si-sunset { background: linear-gradient(135deg, #4F46E5, #3730A3); }
+
+        /* --- মডালস (Glassmorphism) --- */
+        .modal { 
+            position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 200; 
+            display: none; justify-content: center; align-items: flex-end; 
+            backdrop-filter: blur(4px); opacity: 0; transition: opacity 0.3s; 
+        }
+        .modal.active { display: flex; opacity: 1; }
+        .modal-content { 
+            background: white; width: 100%; max-width: 500px; padding: 30px 25px; 
+            border-radius: 30px 30px 0 0; animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1); 
+            max-height: 85vh; overflow-y: auto;
+        }
+        @keyframes slideUp { from{transform: translateY(100%);} to{transform: translateY(0);} }
+
+        .styled-input { 
+            width: 100%; padding: 16px; border-radius: 14px; border: 1px solid #E5E7EB; 
+            background: #F9FAFB; font-family: inherit; font-size: 16px; color: var(--text-main); margin-bottom: 15px; 
+            transition: 0.2s;
+        }
+        .styled-input:focus { background: white; border-color: var(--primary); box-shadow: 0 0 0 4px rgba(255, 122, 0, 0.1); }
+        
+        .btn-primary { 
+            width: 100%; padding: 16px; background: var(--primary); color: white; border: none; border-radius: 14px; 
+            font-weight: 600; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;
+            box-shadow: 0 5px 15px rgba(255, 122, 0, 0.3);
+        }
+        .btn-primary:active { transform: scale(0.98); }
+
+        /* --- বটম নেভিগেশন (Glassmorphism) --- */
+        .bottom-nav { 
+            position: fixed; bottom: 20px; left: 20px; right: 20px; max-width: 500px; margin: 0 auto;
+            background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+            height: 70px; display: flex; justify-content: space-around; align-items: center; 
+            border-radius: 25px; 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            z-index: 90; padding: 0 10px; border: 1px solid rgba(255,255,255,0.5);
+        }
+        .nav-item { 
+            display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; 
+            color: #9CA3AF; cursor: pointer; width: 100%; height: 100%; 
+            transition: 0.3s; position: relative;
+        }
+        .nav-svg { width: 24px; height: 24px; stroke: currentColor; stroke-width: 2; fill: none; stroke-linecap: round; stroke-linejoin: round; transition: 0.3s; }
+        .nav-text { font-size: 10px; font-weight: 600; transition: 0.3s; }
+        
+        .nav-item.active { color: var(--primary); }
+        .nav-item.active .nav-svg { transform: translateY(-2px); }
+        .nav-item.active::after {
+            content: ''; position: absolute; bottom: 10px; width: 4px; height: 4px; background: var(--primary); border-radius: 50%;
+        }
+        
+        .fab { 
+            position: fixed; bottom: 105px; right: 25px; width: 60px; height: 60px; 
+            border-radius: 20px; background: var(--primary); color: white; border: none; 
+            font-size: 30px; box-shadow: 0 10px 25px rgba(255, 122, 0, 0.4); 
+            cursor: pointer; z-index: 95; display: flex; align-items: center; justify-content: center; 
+            transition: transform 0.2s; 
+        }
+        .fab:active { transform: scale(0.9); }
+
+        .holiday-item { 
+            background: white; padding: 16px; margin-bottom: 10px; border-radius: 16px; 
+            display: flex; align-items: center; gap: 15px; border: 1px solid #F3F4F6; 
+            box-shadow: 0 2px 5px rgba(0,0,0,0.02);
+        }
+        .h-date-badge { 
+            background: #FFF1F2; color: var(--holiday); padding: 8px 12px; border-radius: 12px; 
+            text-align: center; min-width: 65px; 
+        }
+        .h-day-big { font-size: 20px; font-weight: 700; line-height: 1; font-family: var(--font-bn-num); }
+        .h-mon-small { font-size: 11px; margin-top: 2px; }
+        
+        .menu-card { background: white; padding: 18px; border-radius: 16px; margin-bottom: 12px; display: flex; align-items: center; gap: 16px; border: 1px solid #F3F4F6; cursor: pointer; transition: 0.2s; }
+        .menu-card:active { transform: scale(0.98); background: #F9FAFB; }
+        .menu-icon { width: 46px; height: 46px; border-radius: 14px; display: flex; align-items: center; justify-content: center; }
+        
+        .icon-loc { background: #EEF2FF; color: #4F46E5; }
+        .icon-share { background: #ECFDF5; color: #059669; }
+        .icon-about { background: #FFFBEB; color: #D97706; }
+        .icon-reset { background: #FEF2F2; color: #EF4444; }
+
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="nav-btn" onclick="changeMonth(-1)">
+            <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+        </div>
+        <div class="month-selector">
+            <div id="month-year" class="main-month">...</div>
+            <div id="header-secondary" class="sub-month">...</div>
+        </div>
+        <div class="nav-btn" onclick="changeMonth(1)">
+            <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+        </div>
+    </header>
+
+    <div class="main-content">
+        <div id="tab-calendar" class="tab-section active">
+            <div class="calendar-container">
+                <div style="display:flex; justify-content:center; margin-bottom:15px;">
+                    <div class="header-loc" onclick="openLocationModal()">
+                        <svg class="loc-icon-main" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+                        <span id="header-location" class="loc-text-span">কলকাতা</span>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="3"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                    </div>
+                </div>
+
+                <div class="weekdays">
+                    <div>রবি</div><div>সোম</div><div>মঙ্গল</div><div>বুধ</div><div>বৃহঃ</div><div>শুক্র</div><div>শনি</div>
+                </div>
+                <div class="days-grid" id="days-grid"></div>
+            </div>
+
+            <div class="timeline-wrapper">
+                <div class="date-header">
+                    <div class="date-big-wrapper">
+                        <div class="date-big" id="display-date">...</div>
+                        <div class="day-name-big" id="display-dayname">...</div>
+                    </div>
+                    <div class="date-chips">
+                        <div class="chip saka">🕉️ <span id="display-saka">--</span></div>
+                        <div class="chip bn">🌿 <span id="display-bangla">--</span></div>
+                    </div>
+                </div>
+                
+                <div class="mini-panjika-card" onclick="goToPanjikaTab()">
+                    <div>
+                        <div style="font-size:11px; color:#D97706; font-weight:600; margin-bottom:2px;">আজকের সূর্যোদয়</div>
+                        <div id="dashboard-sunrise" style="font-weight:700; color:var(--text-main); font-size:15px;">--:--</div>
+                    </div>
+                    <div style="width:32px; height:32px; background:white; border-radius:50%; display:flex; align-items:center; justify-content:center; color:#D97706; box-shadow:0 2px 5px rgba(0,0,0,0.05);">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line></svg>
+                    </div>
+                </div>
+
+                <h4 style="margin:20px 0 10px 0; font-size:15px; color:var(--text-main);">আপনার তালিকা</h4>
+                <div id="events-list"></div>
+            </div>
+            <button class="fab" onclick="openEventModal()">+</button>
+        </div>
+
+        <div id="tab-panjika" class="tab-section">
+            <div style="padding:20px;">
+                <div class="panjika-hero">
+                    <div style="position:relative; z-index:2;">
+                        <div style="font-size:12px; opacity:0.8; margin-bottom:5px;">বর্তমান স্থান অনুযায়ী</div>
+                        <div style="font-size:20px; font-weight:700; margin-bottom:20px; display:flex; align-items:center; gap:8px;">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+                            <span id="panjika-location-text">কলকাতা</span>
+                            <button onclick="openLocationModal()" style="background:rgba(255,255,255,0.2); border:none; padding:4px 10px; border-radius:10px; color:white; font-size:10px;">পরিবর্তন</button>
+                        </div>
+                        
+                        <div class="sunrise-sunset-grid" style="margin-bottom:0;">
+                            <div class="si-card si-sunrise">
+                                <div style="font-size:12px; opacity:0.9;">সূর্যোদয় 🌅</div>
+                                <div id="sunrise-time" style="font-size:22px; font-weight:700; font-family:var(--font-bn-num);">--:--</div>
+                            </div>
+                            <div class="si-card si-sunset">
+                                <div style="font-size:12px; opacity:0.9;">সূর্যাস্ত 🌇</div>
+                                <div id="sunset-time" style="font-size:22px; font-weight:700; font-family:var(--font-bn-num);">--:--</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="background:#FFF1F2; padding:18px; border-radius:16px; margin-bottom:20px; border:1px solid #FECACA; box-shadow:0 4px 10px rgba(225, 29, 72, 0.05);">
+                    <div style="font-weight:700; color:#E11D48; display:flex; align-items:center; gap:8px; margin-bottom:8px;">
+                        <span style="font-size:20px;">⚠️</span> রাহুকাল (অশুভ সময়)
+                    </div>
+                    <div style="font-size:12px; color:#9F1239; margin-bottom:10px;">এই সময়ে শুভ কাজ শুরু করা এড়িয়ে চলা উচিত।</div>
+                    <div style="font-weight:700; font-size:18px; color:#BE123C; font-family:var(--font-bn-num);" id="rahu-kalam-time">--:-- থেকে --:--</div>
+                </div>
+
+                <div style="background:white; padding:18px; border-radius:16px; border:1px solid #E5E7EB; box-shadow:0 4px 10px rgba(0,0,0,0.02);">
+                    <h3 style="margin-bottom:15px; font-size:16px; color:var(--text-main); display:flex; align-items:center; gap:8px;">
+                        <span>🕉️</span> আজকের পঞ্চাঙ্গ
+                    </h3>
+                    <div style="display:flex; justify-content:space-between; padding:10px 0; border-bottom:1px solid #F3F4F6;">
+                        <span style="color:#6B7280; font-size:14px;">শক বর্ষ (ভারতীয় জাতীয়)</span>
+                        <span style="font-weight:600; color:var(--text-main);" id="panjika-saka-date">--</span>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; padding:10px 0;">
+                        <span style="color:#6B7280; font-size:14px;">বাংলা তারিখ</span>
+                        <span style="font-weight:600; color:var(--text-main);" id="panjika-bangla-date">--</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="tab-holidays" class="tab-section">
+            <div style="padding:20px;">
+                <h3 style="margin-bottom:5px; color:var(--text-main);">সরকারি ও হিন্দু ছুটির তালিকা</h3>
+                <p style="font-size:12px; color:var(--text-mute); margin-bottom:20px;">পশ্চিমবঙ্গ এবং সর্বভারতীয় ছুটির তালিকা (২০২৬)</p>
+                <div id="holiday-list-container"></div>
+            </div>
+        </div>
+
+        <div id="tab-menu" class="tab-section">
+            <div class="menu-container" style="padding:20px;">
+                <h3 style="margin-bottom:20px; color:var(--text-main);">সেটিংস</h3>
+                
+                <div class="menu-card" onclick="openLocationModal()">
+                    <div class="menu-icon icon-loc">
+                        <svg viewBox="0 0 24 24" width="20" height="20" stroke-width="2" stroke="currentColor" fill="none"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+                    </div>
+                    <div class="menu-text"><h4>স্থান পরিবর্তন</h4><p style="font-size:11px; color:var(--text-mute);">আপনার জেলা বা শহর নির্বাচন করুন</p></div>
+                </div>
+
+                <div class="menu-card" onclick="shareApp()">
+                    <div class="menu-icon icon-share">
+                        <svg viewBox="0 0 24 24" width="20" height="20" stroke-width="2" stroke="currentColor" fill="none"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
+                    </div>
+                    <div class="menu-text"><h4>শেয়ার করুন</h4><p style="font-size:11px; color:var(--text-mute);">বন্ধুদের সাথে অ্যাপটি শেয়ার করুন</p></div>
+                </div>
+
+                <div class="menu-card" onclick="openAboutModal()">
+                    <div class="menu-icon icon-about">
+                        <svg viewBox="0 0 24 24" width="20" height="20" stroke-width="2" stroke="currentColor" fill="none"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                    </div>
+                    <div class="menu-text"><h4>অ্যাপ সম্পর্কে</h4><p style="font-size:11px; color:var(--text-mute);">ডেভেলপার তথ্য ও ভার্সন</p></div>
+                </div>
+
+                <div class="menu-card" onclick="resetData()">
+                    <div class="menu-icon icon-reset">
+                        <svg viewBox="0 0 24 24" width="20" height="20" stroke-width="2" stroke="currentColor" fill="none"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                    </div>
+                    <div class="menu-text"><h4>রিসেট করুন</h4><p style="font-size:11px; color:var(--text-mute);">সকল সংরক্ষিত তথ্য মুছে ফেলুন</p></div>
+                </div>
+
+                <div style="text-align:center; margin-top:40px; color:#9CA3AF; font-size:12px;">
+                    <p>Smart Bangla Calendar Pro (India) v4.1</p>
+                    <p style="margin-top:5px;">Designed with ❤️ for India</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <nav class="bottom-nav">
+        <div class="nav-item active" id="nav-cal" onclick="switchNav('tab-calendar', this)">
+            <svg class="nav-svg" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+            <span class="nav-text">ক্যালেন্ডার</span>
+        </div>
+        <div class="nav-item" id="nav-panjika" onclick="switchNav('tab-panjika', this)">
+            <svg class="nav-svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+            <span class="nav-text">পঞ্চাঙ্গ</span>
+        </div>
+        <div class="nav-item" onclick="switchNav('tab-holidays', this)">
+            <svg class="nav-svg" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+            <span class="nav-text">ছুটি</span>
+        </div>
+        <div class="nav-item" onclick="switchNav('tab-menu', this)">
+            <svg class="nav-svg" viewBox="0 0 24 24"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+            <span class="nav-text">মেনু</span>
+        </div>
+    </nav>
+
+    <div class="modal" id="location-modal">
+        <div class="modal-content">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                <div style="font-size:18px; font-weight:700; font-family:var(--font-bn-num);">শহর/জেলা নির্বাচন করুন</div>
+                <div onclick="closeModal('location-modal')" style="background:#F3F4F6; width:32px; height:32px; border-radius:50%; display:flex; align-items:center; justify-content:center; cursor:pointer;">✕</div>
+            </div>
+            <input type="text" id="loc-search" class="styled-input" placeholder="শহরের নাম খুঁজুন..." onkeyup="filterDistricts()">
+            <div id="districts-list" style="max-height:350px; overflow-y:auto;"></div>
+        </div>
+    </div>
+
+    <div class="modal" id="event-modal">
+        <div class="modal-content">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                <div style="font-size:18px; font-weight:700; font-family:var(--font-bn-num);">নতুন কাজ যুক্ত করুন</div>
+                <div onclick="closeModal('event-modal')" style="background:#F3F4F6; width:32px; height:32px; border-radius:50%; display:flex; align-items:center; justify-content:center; cursor:pointer;">✕</div>
+            </div>
+            <input type="text" id="inp-title" class="styled-input" placeholder="কাজের নাম (যেমন: পূজা/মিটিং)">
+            <div style="display:flex; gap:15px;">
+                <input type="time" id="inp-start" class="styled-input" value="09:00">
+                <input type="time" id="inp-end" class="styled-input" value="10:00">
+            </div>
+            <button class="btn-primary" onclick="saveEvent()">সংরক্ষণ করুন</button>
+        </div>
+    </div>
+
+    <div class="modal" id="about-modal">
+        <div class="modal-content">
+            <div style="text-align:center; padding:10px 0;">
+                <div style="width:70px; height:70px; background:linear-gradient(135deg, var(--primary), var(--primary-dark)); border-radius:20px; margin:0 auto 15px; display:flex; align-items:center; justify-content:center; font-size:35px; color:white; box-shadow:0 10px 20px rgba(255, 122, 0, 0.3);">📅</div>
+                <h3 style="margin-bottom:5px; font-family: 'Galada', cursive; font-size:22px;">স্মার্ট বাংলা ক্যালেন্ডার (India)</h3>
+                <p style="color:#6B7280; font-size:13px; margin-bottom:25px;">ভার্সন ৪.১.০</p>
+                
+                <div style="background:#F9FAFB; padding:15px; border-radius:16px; text-align:left; margin-bottom:20px; border:1px solid #E5E7EB;">
+                    <p style="font-size:14px; margin-bottom:10px;">✅ ব্রাউজার কম্প্যাটিবিলিটি ফিক্স</p>
+                    <p style="font-size:14px; margin-bottom:10px;">✅ হিন্দু ক্যালেন্ডার ও শক বর্ষ</p>
+                    <p style="font-size:14px; margin-bottom:10px;">✅ দৈনিক সূর্যোদয়-সূর্যাস্ত (API)</p>
+                    <p style="font-size:14px;">✅ সঠিক রাহুকাল নির্ণায়ক</p>
+                </div>
+                
+                <button onclick="closeModal('about-modal')" class="btn-primary" style="background:#1F2937; box-shadow:none;">ঠিক আছে</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const districts = [
+            {name: "কলকাতা", lat: 22.5726, lng: 88.3639},
+            {name: "হাওড়া", lat: 22.5958, lng: 88.2636},
+            {name: "দার্জিলিং", lat: 27.0410, lng: 88.2663},
+            {name: "শিলিগুড়ি", lat: 26.7271, lng: 88.3953},
+            {name: "দুর্গাপুর", lat: 23.5204, lng: 87.3119},
+            {name: "আসানসোল", lat: 23.6739, lng: 86.9524},
+            {name: "বর্ধমান", lat: 23.2324, lng: 87.8615},
+            {name: "মালদহ", lat: 25.0028, lng: 88.1461},
+            {name: "বহরমপুর", lat: 24.0988, lng: 88.2679},
+            {name: "খড়গপুর", lat: 22.3302, lng: 87.3237},
+            {name: "বাঁকুড়া", lat: 23.2313, lng: 87.0784},
+            {name: "পুরুলিয়া", lat: 23.3321, lng: 86.3652},
+            {name: "দীঘা", lat: 21.6266, lng: 87.5273},
+            {name: "হুগলী", lat: 22.9088, lng: 88.3967},
+            {name: "কোচবিহার", lat: 26.3260, lng: 89.4533},
+            {name: "নয়াদিল্লি", lat: 28.6139, lng: 77.2090},
+            {name: "মুম্বাই", lat: 19.0760, lng: 72.8777},
+            {name: "বেঙ্গালুরু", lat: 12.9716, lng: 77.5946},
+            {name: "চেন্নাই", lat: 13.0827, lng: 80.2707},
+            {name: "গুয়াহাটি", lat: 26.1158, lng: 91.7086},
+            {name: "আগরতলা", lat: 23.8315, lng: 91.2868}
+        ];
+        districts.sort((a, b) => a.name.localeCompare(b.name, 'bn'));
+
+        const holidays2026 = [
+            { date: '2026-01-12', title: 'স্বামী বিবেকানন্দের জন্মদিন', day: 'সোমবার' },
+            { date: '2026-01-23', title: 'নেতাজীর জন্মদিন', day: 'শুক্রবার' },
+            { date: '2026-01-26', title: 'প্রজাতন্ত্র দিবস', day: 'সোমবার' },
+            { date: '2026-02-14', title: 'সরস্বতী পূজা / বসন্ত পঞ্চমী', day: 'শনিবার' },
+            { date: '2026-03-03', title: 'দোলযাত্রা / হোলি', day: 'মঙ্গলবার' },
+            { date: '2026-04-14', title: 'পয়লা বৈশাখ (বাংলা নববর্ষ)', day: 'মঙ্গলবার' },
+            { date: '2026-05-01', title: 'মে দিবস', day: 'শুক্রবার' },
+            { date: '2026-05-08', title: 'রবীন্দ্র জয়ন্তী', day: 'শুক্রবার' },
+            { date: '2026-08-15', title: 'স্বাধীনতা দিবস', day: 'শনিবার' },
+            { date: '2026-10-17', title: 'দুর্গাপূজা (মহাসপ্তমী)', day: 'শনিবার' },
+            { date: '2026-10-18', title: 'দুর্গাপূজা (মহাষ্টমী)', day: 'রবিবার' },
+            { date: '2026-10-19', title: 'দুর্গাপূজা (মহানবমী)', day: 'সোমবার' },
+            { date: '2026-10-20', title: 'বিজয়া দশমী', day: 'মঙ্গলবার' },
+            { date: '2026-11-08', title: 'কালীপূজা / দীপাবলি', day: 'রবিবার' },
+            { date: '2026-12-25', title: 'বড়দিন', day: 'শুক্রবার' }
+        ];
+
+        let currentDate = new Date();
+        let selectedDateKey = formatDateKey(currentDate);
+        
+        // Safe Storage Check
+        let events = [], curLoc = districts.find(d => d.name === "কলকাতা");
+        try { events = JSON.parse(localStorage.getItem('inCalEvents')) || []; } catch(e){}
+        try { if(localStorage.getItem('inCalLoc')) curLoc = JSON.parse(localStorage.getItem('inCalLoc')); } catch(e){}
+
+        const bnMonths = ["জানুয়ারি", "ফেব্রুয়ারি", "মার্চ", "এপ্রিল", "মে", "জুন", "জুলাই", "আগস্ট", "সেপ্টেম্বর", "অক্টোবর", "নভেম্বর", "ডিসেম্বর"];
+        const daysBn = ["রবিবার", "সোমবার", "মঙ্গলবার", "বুধবার", "বৃহস্পতিবার", "শুক্রবার", "শনিবার"];
+        const bnNums = ['০','১','২','৩','৪','৫','৬','৭','৮','৯'];
+        
+        function toBn(n) { return n.toString().replace(/\d/g, d => bnNums[d]); }
+
+        // --- Safe Fallback Formatters (ব্রাউজার ক্র্যাশ রোধ করতে) ---
+        function getSafeSakaMonth(d) {
+            try { return new Intl.DateTimeFormat('bn-IN-u-ca-indian', {month:'long'}).format(d); } 
+            catch(e) { return "শকাব্দ"; }
+        }
+        function getSafeSakaDay(d) {
+            try { return toBn(new Intl.DateTimeFormat('bn-IN-u-ca-indian', {day:'numeric'}).format(d).replace(/[^0-9]/g, '')); } 
+            catch(e) { return toBn(d.getDate()); }
+        }
+        function getSafeSakaFull(d) {
+            try { 
+                let str = new Intl.DateTimeFormat('bn-IN-u-ca-indian', {day:'numeric', month:'long', year:'numeric'}).format(d); 
+                return str.replace(/\d/g, x => bnNums[x]); 
+            } catch(e) { return toBn(d.getDate()) + " শকাব্দ"; }
+        }
+        function getSafeBnMonth(d) {
+            try { return new Intl.DateTimeFormat('bn-IN', {month:'long'}).format(d); } 
+            catch(e) { return bnMonths[d.getMonth()]; }
+        }
+        function getSafeBnFull(d) {
+            try { 
+                let str = new Intl.DateTimeFormat('bn-IN', {day:'numeric', month:'long', year:'numeric'}).format(d);
+                return str.replace(/\d/g, x => bnNums[x]); 
+            } catch(e) { return toBn(d.getDate()) + " " + bnMonths[d.getMonth()] + " " + toBn(d.getFullYear()); }
+        }
+
+        function formatDateKey(d) {
+            const year = d.getFullYear();
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+        function getDateFromKey(key) {
+            const parts = key.split('-');
+            return new Date(parts[0], parts[1] - 1, parts[2]);
+        }
+
+        window.onload = () => {
+            updateLocUI();
+            renderCalendar();
+            renderEvents(selectedDateKey);
+            fetchPanjika(selectedDateKey);
+            renderHolidays();
+            initDistrictList();
+        };
+
+        function goToPanjikaTab() {
+            const today = new Date();
+            const todayKey = formatDateKey(today);
+            if (selectedDateKey !== todayKey) {
+                selectedDateKey = todayKey;
+                currentDate = today;
+                renderCalendar();
+                fetchPanjika(todayKey);
+            }
+            switchNav('tab-panjika', document.getElementById('nav-panjika'));
+        }
+
+        function renderCalendar() {
+            const grid = document.getElementById('days-grid'); grid.innerHTML = '';
+            const y = currentDate.getFullYear(), m = currentDate.getMonth();
+            
+            document.getElementById('month-year').innerText = `${bnMonths[m]} ${toBn(y)}`;
+            
+            const midDate = new Date(y, m, 15);
+            
+            const bnMonthText = getSafeBnMonth(midDate);
+            const sakaMonthText = getSafeSakaMonth(midDate);
+            
+            document.getElementById('header-secondary').innerHTML = `<span class="header-bn">${bnMonthText}</span><span class="divider">•</span><span class="header-saka">${sakaMonthText} শক</span>`;
+
+            const firstDay = new Date(y, m, 1).getDay();
+            const totalDays = new Date(y, m + 1, 0).getDate();
+
+            for(let i=0; i<firstDay; i++) grid.appendChild(document.createElement('div'));
+            
+            for(let i=1; i<=totalDays; i++) {
+                const dObj = new Date(y, m, i);
+                const dateKey = formatDateKey(dObj);
+                
+                const el = document.createElement('div');
+                const isHol = holidays2026.some(h => h.date === dateKey);
+                const hasEvt = events.some(e => e.date === dateKey);
+                
+                const sakaDay = getSafeSakaDay(dObj);
+                
+                el.className = `day ${dateKey===selectedDateKey?'active':''} ${isHol?'is-holiday':''} ${hasEvt?'has-event':''}`;
+                el.innerHTML = `
+                    <div class="sub-dates"><span class="date-saka">${sakaDay}</span><span class="date-bn">${toBn(i)}</span></div>
+                    <span class="date-main">${i}</span>
+                `;
+                el.onclick = () => { 
+                    selectedDateKey = dateKey; 
+                    document.querySelectorAll('.day').forEach(d => d.classList.remove('active'));
+                    el.classList.add('active');
+                    renderEvents(dateKey); 
+                    fetchPanjika(dateKey); 
+                };
+                grid.appendChild(el);
+            }
+        }
+
+        function renderEvents(key) {
+            const listDiv = document.getElementById('events-list'); 
+            const d = getDateFromKey(key);
+            
+            document.getElementById('display-date').innerHTML = `${toBn(d.getDate())} ${bnMonths[d.getMonth()]}`;
+            document.getElementById('display-dayname').innerText = daysBn[d.getDay()];
+            
+            const sakaDateFull = getSafeSakaFull(d);
+            document.getElementById('display-saka').innerText = sakaDateFull + ' শক';
+            document.getElementById('panjika-saka-date').innerText = sakaDateFull + ' শক';
+            
+            const bnDateFull = getSafeBnFull(d);
+            document.getElementById('display-bangla').innerText = bnDateFull;
+            document.getElementById('panjika-bangla-date').innerText = bnDateFull;
+
+            const dayEvents = events.filter(e => e.date === key).sort((a,b) => a.start.localeCompare(b.start));
+            const holiday = holidays2026.find(h => h.date === key);
+
+            listDiv.innerHTML = '';
+            
+            if(holiday) {
+                listDiv.innerHTML += `
+                <div style="background:linear-gradient(135deg, #FEF2F2, #FEE2E2); color:#B91C1C; padding:15px; border-radius:14px; margin-bottom:15px; border:1px solid #FECACA; display:flex; align-items:center; gap:10px;">
+                    <span style="font-size:20px;">🎉</span>
+                    <div>
+                        <div style="font-weight:700;">${holiday.title}</div>
+                        <div style="font-size:12px; opacity:0.8;">সরকারি ছুটি / উৎসব</div>
+                    </div>
+                </div>`;
+            }
+
+            if(dayEvents.length === 0 && !holiday) {
+                listDiv.innerHTML = `<div style="text-align:center; color:#9CA3AF; padding:20px 10px; font-size:13px; background:#F9FAFB; border-radius:12px; border:1px dashed #E5E7EB;">আজকের কোনো কাজ নেই</div>`;
+            } else {
+                dayEvents.forEach((e, idx) => {
+                    const originalIdx = events.indexOf(e);
+                    listDiv.innerHTML += `
+                    <div class="event-card">
+                        <div class="event-info" style="flex:1;">
+                            <div class="time-txt" style="display:inline-block; margin-bottom:4px;">${toBn(e.start)}</div>
+                            <div style="font-size:15px; font-weight:600; color:var(--text-main);">${e.title}</div>
+                        </div>
+                        <button class="btn-delete-event" onclick="deleteEvent(${originalIdx})">✕</button>
+                    </div>`;
+                });
+            }
+        }
+
+        function deleteEvent(index) {
+            if(confirm('মুছে ফেলতে চান?')) {
+                events.splice(index, 1);
+                localStorage.setItem('inCalEvents', JSON.stringify(events));
+                renderEvents(selectedDateKey);
+                renderCalendar();
+            }
+        }
+
+        function fetchPanjika(key) {
+            const [y,m,d] = key.split('-');
+            const dObj = new Date(y, m-1, d);
+            
+            fetch(`https://api.sunrise-sunset.org/json?lat=${curLoc.lat}&lng=${curLoc.lng}&date=${key}&formatted=0`)
+            .then(r=>r.json()).then(data => {
+                if(!data || !data.results) throw new Error("API Error");
+                const t = data.results;
+                
+                const sunriseDate = new Date(t.sunrise);
+                const sunsetDate = new Date(t.sunset);
+                
+                const srTime = sunriseDate.toLocaleTimeString('bn-IN', {hour:'numeric', minute:'2-digit'});
+                const ssTime = sunsetDate.toLocaleTimeString('bn-IN', {hour:'numeric', minute:'2-digit'});
+                
+                document.getElementById('sunrise-time').innerText = srTime;
+                document.getElementById('sunset-time').innerText = ssTime;
+                document.getElementById('dashboard-sunrise').innerText = srTime;
+                
+                const dayLengthMs = sunsetDate.getTime() - sunriseDate.getTime();
+                const partLengthMs = dayLengthMs / 8;
+                
+                const rahuParts = [8, 2, 7, 5, 6, 4, 3]; 
+                const todayRahuPart = rahuParts[dObj.getDay()] - 1;
+                
+                const rahuStart = new Date(sunriseDate.getTime() + (todayRahuPart * partLengthMs));
+                const rahuEnd = new Date(rahuStart.getTime() + partLengthMs);
+                
+                const rStartStr = rahuStart.toLocaleTimeString('bn-IN', {hour:'numeric', minute:'2-digit'});
+                const rEndStr = rahuEnd.toLocaleTimeString('bn-IN', {hour:'numeric', minute:'2-digit'});
+                
+                document.getElementById('rahu-kalam-time').innerText = `${rStartStr} থেকে ${rEndStr}`;
+
+            }).catch(e => {
+                document.getElementById('sunrise-time').innerText = "--:--";
+                document.getElementById('sunset-time').innerText = "--:--";
+                document.getElementById('rahu-kalam-time').innerText = "--:-- থেকে --:--";
+                document.getElementById('dashboard-sunrise').innerText = "--:--";
+            });
+        }
+
+        async function shareApp() {
+            const shareData = {
+                title: 'স্মার্ট বাংলা ক্যালেন্ডার (India)',
+                text: 'সঠিক পঞ্চাঙ্গ, রাহুকাল ও ছুটির তালিকার সেরা অ্যাপ!',
+                url: window.location.href
+            };
+            try {
+                if (navigator.share) await navigator.share(shareData);
+                else {
+                    const tempInput = document.createElement("input");
+                    tempInput.value = window.location.href;
+                    document.body.appendChild(tempInput);
+                    tempInput.select();
+                    document.execCommand("copy");
+                    document.body.removeChild(tempInput);
+                    alert('লিংক কপি করা হয়েছে!');
+                }
+            } catch (err) {}
+        }
+
+        function renderHolidays() {
+            const c = document.getElementById('holiday-list-container');
+            holidays2026.forEach(h => {
+                const d = getDateFromKey(h.date);
+                c.innerHTML += `
+                    <div class="holiday-item" onclick="jumpToDate('${h.date}')">
+                        <div class="h-date-badge">
+                            <div class="h-day-big">${toBn(d.getDate())}</div>
+                            <div class="h-mon-small">${bnMonths[d.getMonth()].slice(0,3)}</div>
+                        </div>
+                        <div>
+                            <div style="font-weight:600; color:#1F2937; font-size:15px;">${h.title}</div>
+                            <div style="font-size:12px; color:#6B7280;">${daysBn[d.getDay()]}</div>
+                        </div>
+                    </div>`;
+            });
+        }
+
+        function switchNav(id, el) {
+            document.querySelectorAll('.tab-section').forEach(s => s.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+            el.classList.add('active');
+        }
+        
+        function openLocationModal() { document.getElementById('location-modal').classList.add('active'); }
+        function openEventModal() { document.getElementById('event-modal').classList.add('active'); }
+        function openAboutModal() { document.getElementById('about-modal').classList.add('active'); }
+        function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+
+        function saveEvent() {
+            const title = document.getElementById('inp-title').value;
+            if(title) {
+                events.push({
+                    title, 
+                    start: document.getElementById('inp-start').value, 
+                    date: selectedDateKey
+                });
+                localStorage.setItem('inCalEvents', JSON.stringify(events));
+                renderEvents(selectedDateKey); renderCalendar(); closeModal('event-modal');
+                document.getElementById('inp-title').value = '';
+            }
+        }
+        
+        function initDistrictList() {
+            const l = document.getElementById('districts-list'); l.innerHTML = '';
+            districts.forEach(d => {
+                const div = document.createElement('div');
+                div.style.padding='15px'; div.style.borderBottom='1px solid #F3F4F6'; div.style.cursor='pointer';
+                div.innerText = d.name;
+                div.onclick = () => { 
+                    curLoc = d; localStorage.setItem('inCalLoc', JSON.stringify(d)); 
+                    updateLocUI(); closeModal('location-modal'); fetchPanjika(selectedDateKey); 
+                };
+                l.appendChild(div);
+            });
+        }
+        
+        function filterDistricts() {
+            const q = document.getElementById('loc-search').value.toLowerCase();
+            Array.from(document.getElementById('districts-list').children).forEach(c => c.style.display = c.innerText.toLowerCase().includes(q) ? 'block' : 'none');
+        }
+        
+        function updateLocUI() { 
+            document.getElementById('header-location').innerText = curLoc.name; 
+            document.getElementById('panjika-location-text').innerText = curLoc.name; 
+        }
+        function changeMonth(v) { currentDate.setMonth(currentDate.getMonth()+v); renderCalendar(); }
+        function jumpToDate(d) { 
+            selectedDateKey = d; 
+            currentDate = getDateFromKey(d);
+            renderCalendar(); 
+            renderEvents(d); 
+            fetchPanjika(d); 
+            switchNav('tab-calendar', document.getElementById('nav-cal')); 
+        }
+        function resetData() { if(confirm('সব ডাটা মুছে ফেলতে চান?')) { localStorage.clear(); location.reload(); } }
+    </script>
+</body>
+</html>
